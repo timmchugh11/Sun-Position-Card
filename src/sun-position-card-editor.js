@@ -149,6 +149,11 @@ class SunPositionCardEditor extends HTMLElement {
               label="${this._localize('editor.sun_size')}"
             ></ha-selector>
         </div>
+
+        <ha-selector
+          id="text_scale"
+          label="${this._localize('editor.text_scale')}"
+        ></ha-selector>
         
         <div class="row">
           <ha-switch id="show_image"></ha-switch>
@@ -289,6 +294,11 @@ class SunPositionCardEditor extends HTMLElement {
         sunSizeSelector.selector = { number: { min: 20, max: 120, mode: "slider", unit_of_measurement: "px" } };
     }
 
+    const textScaleSelector = this.shadowRoot.getElementById('text_scale');
+    if (textScaleSelector) {
+        textScaleSelector.selector = { number: { min: 70, max: 200, step: 5, mode: "slider", unit_of_measurement: "%" } };
+    }
+
     // Solarleistung Selector (alle Sensoren, z.B. Power oder Irradiance)
     const solarSelector = this.shadowRoot.getElementById('solar_entity');
     if (solarSelector) {
@@ -376,6 +386,7 @@ class SunPositionCardEditor extends HTMLElement {
     add('solar_entity', 'value-changed');
     add('view_mode', 'value-changed');
     add('sun_size', 'value-changed');
+    add('text_scale', 'value-changed');
     add('state_position', 'value-changed');
     add('moon_phase_position', 'value-changed');
     add('time_position', 'value-changed');
@@ -425,6 +436,7 @@ class SunPositionCardEditor extends HTMLElement {
     setVal('temp_entity', config.temp_entity || '');
     setVal('solar_entity', config.solar_entity || '');
     setVal('sun_size', config.sun_size || 50);
+    setVal('text_scale', config.text_scale ?? 100);
     
     setVal('view_mode', config.view_mode || 'classic');
     setVal('state_position', config.state_position || 'in_list');
@@ -571,6 +583,10 @@ class SunPositionCardEditor extends HTMLElement {
         newValue = Number(target.value);
     } else {
         newValue = target.value;
+    }
+
+    if (configValue === 'sun_size' || configValue === 'text_scale') {
+        newValue = Number(newValue);
     }
 
     if (this._config[configValue] === newValue) return;

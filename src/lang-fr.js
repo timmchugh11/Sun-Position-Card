@@ -72,6 +72,7 @@ export default {
         show_weather_badge: "Afficher l’icône météo",
         animate_images: "Animer les images (sauf matin/crépuscule)",
         sun_size: "Taille du soleil (mode arc)",
+        text_scale: "Échelle du texte",
         state_position: "Position de l’état",
         state_pos_above: "Au-dessus de l’image",
         state_pos_in_list: "Dans la liste",

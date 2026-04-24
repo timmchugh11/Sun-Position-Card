@@ -72,6 +72,7 @@ export default {
 		show_weather_badge: "Toon weer-badge",
 		animate_images: "Animeer afbeeldingen (behalve ochtend/schemering)",
 		sun_size: "Zon grootte (alleen boog)",
+		text_scale: "Tekstschaal",
 		state_position: "Positie status",
 		state_pos_above: "Boven afbeelding",
 		state_pos_in_list: "In lijst",

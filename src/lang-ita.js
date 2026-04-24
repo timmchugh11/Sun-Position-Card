@@ -72,6 +72,7 @@ export default {
         show_weather_badge: "Mostra Badge Meteo",
         animate_images: "Anima le Immagini (eccetto mattino/crepuscolo)",
         sun_size: "Dimensione del Sole (solo Arco)",
+        text_scale: "Scala del Testo",
         state_position: "Posizione dello Stato",
         state_pos_above: "Sopra l'Immagine",
         state_pos_in_list: "Nella Lista",

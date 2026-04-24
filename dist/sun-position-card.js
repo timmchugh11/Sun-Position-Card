@@ -77,6 +77,7 @@ const de = {
         show_weather_badge: "Wetter-Badge im Bild anzeigen",
         animate_images: "Bilder animieren (außer Morgen/Dämmerung Bild)",
         sun_size: "Größe der Sonne/Mond (nur Bogen)",
+        text_scale: "Textskalierung",
         state_position: "Position des Status",
         state_pos_above: "Über dem Bild",
         state_pos_in_list: "In der Liste",
@@ -182,6 +183,7 @@ const en = {
         show_weather_badge: "Show Weather Badge",
         animate_images: "Animate Images (except morning/twilight image)",
         sun_size: "Sun/Moon Size (Arc only)",
+        text_scale: "Text Scale",
         state_position: "State Position",
         state_pos_above: "Above Image",
         state_pos_in_list: "In List",
@@ -287,6 +289,7 @@ const fr = {
         show_weather_badge: "Afficher l’icône météo",
         animate_images: "Animer les images (sauf matin/crépuscule)",
         sun_size: "Taille du soleil (mode arc)",
+        text_scale: "Échelle du texte",
         state_position: "Position de l’état",
         state_pos_above: "Au-dessus de l’image",
         state_pos_in_list: "Dans la liste",
@@ -391,6 +394,7 @@ const ita = {
         show_weather_badge: "Mostra Badge Meteo",
         animate_images: "Anima le Immagini (eccetto mattino/crepuscolo)",
         sun_size: "Dimensione del Sole (solo Arco)",
+        text_scale: "Scala del Testo",
         state_position: "Posizione dello Stato",
         state_pos_above: "Sopra l'Immagine",
         state_pos_in_list: "Nella Lista",
@@ -495,6 +499,7 @@ const nl = {
 		show_weather_badge: "Toon weer-badge",
 		animate_images: "Animeer afbeeldingen (behalve ochtend/schemering)",
 		sun_size: "Zon grootte (alleen boog)",
+		text_scale: "Tekstschaal",
 		state_position: "Positie status",
 		state_pos_above: "Boven afbeelding",
 		state_pos_in_list: "In lijst",
@@ -599,6 +604,7 @@ const pl = {
         show_weather_badge: "Pokaż plakietkę pogodową",
         animate_images: "Animuj obrazy (z wyjątkiem rana/świtu)",
         sun_size: "Rozmiar słońca/księżyca (tylko łuk)",
+        text_scale: "Skala tekstu",
         state_position: "Pozycja stanu",
         state_pos_above: "Nad obrazem",
         state_pos_in_list: "Na liście",
@@ -800,6 +806,11 @@ class SunPositionCardEditor extends HTMLElement {
               label="${this._localize('editor.sun_size')}"
             ></ha-selector>
         </div>
+
+        <ha-selector
+          id="text_scale"
+          label="${this._localize('editor.text_scale')}"
+        ></ha-selector>
         
         <div class="row">
           <ha-switch id="show_image"></ha-switch>
@@ -940,6 +951,11 @@ class SunPositionCardEditor extends HTMLElement {
         sunSizeSelector.selector = { number: { min: 20, max: 120, mode: "slider", unit_of_measurement: "px" } };
     }
 
+    const textScaleSelector = this.shadowRoot.getElementById('text_scale');
+    if (textScaleSelector) {
+        textScaleSelector.selector = { number: { min: 70, max: 200, step: 5, mode: "slider", unit_of_measurement: "%" } };
+    }
+
     // Solarleistung Selector (alle Sensoren, z.B. Power oder Irradiance)
     const solarSelector = this.shadowRoot.getElementById('solar_entity');
     if (solarSelector) {
@@ -1027,6 +1043,7 @@ class SunPositionCardEditor extends HTMLElement {
     add('solar_entity', 'value-changed');
     add('view_mode', 'value-changed');
     add('sun_size', 'value-changed');
+    add('text_scale', 'value-changed');
     add('state_position', 'value-changed');
     add('moon_phase_position', 'value-changed');
     add('time_position', 'value-changed');
@@ -1076,6 +1093,7 @@ class SunPositionCardEditor extends HTMLElement {
     setVal('temp_entity', config.temp_entity || '');
     setVal('solar_entity', config.solar_entity || '');
     setVal('sun_size', config.sun_size || 50);
+    setVal('text_scale', config.text_scale ?? 100);
     
     setVal('view_mode', config.view_mode || 'classic');
     setVal('state_position', config.state_position || 'in_list');
@@ -1224,6 +1242,10 @@ class SunPositionCardEditor extends HTMLElement {
         newValue = target.value;
     }
 
+    if (configValue === 'sun_size' || configValue === 'text_scale') {
+        newValue = Number(newValue);
+    }
+
     if (this._config[configValue] === newValue) return;
     
     let newConfig = { ...this._config };
@@ -1304,6 +1326,8 @@ class SunPositionCard extends HTMLElement {
     super();
     this._created = false;
     this._lastImage = null;
+    this._resizeObserver = null;
+    this._observedCard = null;
     this.langs = { de, en, fr, it: ita, nl, pl };
   }
 
@@ -1359,8 +1383,9 @@ class SunPositionCard extends HTMLElement {
     return mapping[state] || 'mdi:moon-waning-crescent';
   }
 
-  _calculateSunPosition(sunState, hass) {
-    const fallback = { top: '270px', clipPath: 'inset(0 0 170px 0)' };
+  _calculateSunPosition(sunState, hass, containerHeight = 170, horizonVisible = 40) {
+    const fallbackTop = Math.max(containerHeight - horizonVisible, 0);
+    const fallback = { top: `${fallbackTop}px`, clipPath: 'inset(0 0 170px 0)' };
     if (!sunState || sunState.state !== 'above_horizon') return fallback;
 
     const riseEnt = hass.states['sensor.sun_next_rising'];
@@ -1381,8 +1406,7 @@ class SunPositionCard extends HTMLElement {
     const rise = new Date(riseNext.getTime() - dayMs);
     let noon = noonNext <= set ? noonNext : new Date(noonNext.getTime() - dayMs);
 
-    const h = 170;
-    const posAtHorizon = h - 40;
+    const posAtHorizon = Math.max(containerHeight - horizonVisible, 0);
     const posAtNoon = 0;
     let phase = 0;
 
@@ -1432,18 +1456,15 @@ class SunPositionCard extends HTMLElement {
 
     percent = Math.max(0, Math.min(1, percent));
 
-    // Radius Logik: Compact 90px, Groß 120px
-    const radius = isCompact ? 90 : 120;
+    const metrics = this._getArcMetrics(isCompact);
+    const radius = metrics.radius;
 
     const rad = Math.PI * (1 - percent);
 
     const xOffset = Math.cos(rad) * radius;
     const yOffset = Math.sin(rad) * radius;
 
-    // Basislinie berechnen (Horizont)
-    // CSS Top ist 50px (Groß) oder 70px (Compact)
-    // Baseline = CSS Top + Radius
-    const baselineY = isCompact ? (70 + 90) : (50 + 120); // 160px oder 170px
+    const baselineY = metrics.baselineY;
 
     return {
       left: `calc(50% + ${xOffset}px)`,
@@ -1480,11 +1501,12 @@ class SunPositionCard extends HTMLElement {
     percent = Math.max(0, Math.min(1, percent));
 
     // Gleiche Geometrie wie bei der Sonne
-    const radius = isCompact ? 90 : 120;
+    const metrics = this._getArcMetrics(isCompact);
+    const radius = metrics.radius;
     const rad = Math.PI * (1 - percent);
     const xOffset = Math.cos(rad) * radius;
     const yOffset = Math.sin(rad) * radius;
-    const baselineY = isCompact ? (70 + 90) : (50 + 120);
+    const baselineY = metrics.baselineY;
 
     return {
       left: `calc(50% + ${xOffset}px)`,
@@ -1526,6 +1548,73 @@ class SunPositionCard extends HTMLElement {
     return hours * 60 * 60 * 1000;
   }
 
+  _updateFillHeightMode() {
+    const card = this.querySelector('ha-card');
+    if (!card) return;
+
+    const shouldFillHeight = card.clientHeight >= 560;
+    card.classList.toggle('fill-height', shouldFillHeight);
+  }
+
+  _attachResizeObserver() {
+    const card = this.querySelector('ha-card');
+    if (!card || typeof ResizeObserver === 'undefined') return;
+    if (this._observedCard === card) return;
+
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+    }
+
+    this._resizeObserver = new ResizeObserver(() => this._updateFillHeightMode());
+    this._resizeObserver.observe(card);
+    this._observedCard = card;
+  }
+
+  _getArcMetrics(isCompact) {
+    const container = this.querySelector('.sun-image-container.calculated');
+    const defaultRadius = isCompact ? 90 : 120;
+    const defaultBaseline = isCompact ? 160 : 170;
+
+    if (!container) {
+      return { radius: defaultRadius, baselineY: defaultBaseline };
+    }
+
+    const width = container.clientWidth || (isCompact ? 220 : 260);
+    const height = container.clientHeight || defaultBaseline;
+    const isFillHeight = container.closest('ha-card')?.classList.contains('fill-height');
+    const maxRadiusByWidth = Math.max(60, Math.floor((width - 28) / 2));
+    const maxRadiusByHeight = isFillHeight
+      ? Math.max(60, Math.floor(height * 0.72))
+      : Math.max(60, height - 14);
+    const radius = Math.max(defaultRadius, Math.min(maxRadiusByWidth, maxRadiusByHeight));
+    const baselineY = isFillHeight
+      ? Math.round((height + radius) / 2)
+      : Math.max(radius, height - 6);
+
+    return { radius, baselineY };
+  }
+
+  _applyArcPathStyle(arcEl, isCompact) {
+    if (!arcEl) return;
+
+    const metrics = this._getArcMetrics(isCompact);
+    const radius = metrics.radius;
+    const top = metrics.baselineY - radius;
+
+    arcEl.style.width = `${radius * 2}px`;
+    arcEl.style.height = `${radius}px`;
+    arcEl.style.borderRadius = `${radius}px ${radius}px 0 0`;
+    arcEl.style.top = `${top}px`;
+  }
+
+  disconnectedCallback() {
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+      this._observedCard = null;
+    }
+  }
+
   set hass(hass) {
     this._hass = hass;
 
@@ -1537,6 +1626,9 @@ class SunPositionCard extends HTMLElement {
       `;
       this.content = this.querySelector('.card-content');
     }
+
+    this._attachResizeObserver();
+    this._updateFillHeightMode();
 
     const config = this.config;
     if (!config) return;
@@ -1567,6 +1659,10 @@ class SunPositionCard extends HTMLElement {
     const hideMoonOnDay = config.hide_moon_phase_on_day ?? false;
     const showMoonIcon = config.show_moon_icon_in_text ?? false;
     const sunSize = config.sun_size || 50;
+    const textScalePercent = Number(config.text_scale ?? 100);
+    const textScale = Number.isFinite(textScalePercent)
+      ? Math.max(0.7, Math.min(2.0, textScalePercent / 100))
+      : 1;
     const showNightArc = config.show_night_arc ?? false;
 
     const use12hFormat = config.use_12h_format ?? false;
@@ -1622,6 +1718,8 @@ class SunPositionCard extends HTMLElement {
     const timeListFormat = config.time_list_format || 'centered';
 
     const isCompact = (timePosition === 'right');
+
+    this.style.setProperty('--spc-text-scale', String(textScale));
 
     const formatTime = (isoString) => {
       if (!isoString) return '';
@@ -1895,8 +1993,7 @@ class SunPositionCard extends HTMLElement {
 
         const arcEl = this.querySelector('.sun-arc-path');
         if (arcEl) {
-          if (isCompact) arcEl.classList.add('compact');
-          else arcEl.classList.remove('compact');
+          this._applyArcPathStyle(arcEl, isCompact);
         }
 
         if (elevation <= 0) {
@@ -1922,8 +2019,8 @@ class SunPositionCard extends HTMLElement {
           } else {
             container.classList.remove('arc-mode');
             if (effectiveViewMode === 'arc' || effectiveViewMode === 'calculated') {
-              imgEl.style.width = '170px';
-              imgEl.style.maxWidth = '170px';
+              imgEl.style.width = '';
+              imgEl.style.maxWidth = '';
             }
             if (arcEl) arcEl.style.display = 'none';
 
@@ -1948,7 +2045,9 @@ class SunPositionCard extends HTMLElement {
             wrapperEl.style.transform = 'translate(-50%, -50%)';
           } else {
             container.classList.remove('arc-mode');
-            const { top, clipPath } = this._calculateSunPosition(state, hass);
+            const containerHeight = container.clientHeight || 170;
+            const horizonVisible = Math.max(32, Math.min(90, Math.round(containerHeight * 0.24)));
+            const { top, clipPath } = this._calculateSunPosition(state, hass, containerHeight, horizonVisible);
             wrapperEl.style.left = '50%';
             wrapperEl.style.top = top;
             wrapperEl.style.transform = 'translateX(-50%)';
@@ -2001,6 +2100,10 @@ class SunPositionCard extends HTMLElement {
   _buildStructure(timePosition, statePosition, showImage, showDegrees, showDegreesInList, timeListFormat, showMoonPhaseAbove, viewMode, showNightArc) {
     const style = `
       <style>
+        ha-card {
+            height: 100%;
+        }
+
         .card-content {
             padding: 15px 10px 5px 10px;
         }
@@ -2057,6 +2160,10 @@ class SunPositionCard extends HTMLElement {
             border-radius: 90px 90px 0 0;
             top: 70px;
         }
+
+        .main-layout {
+            width: 100%;
+        }
         
         .weather-badge {
             position: absolute;
@@ -2069,7 +2176,7 @@ class SunPositionCard extends HTMLElement {
             display: none; 
             align-items: center;
             gap: 6px;
-            font-size: 1em; 
+            font-size: calc(1em * var(--spc-text-scale, 1));
             pointer-events: none;
             backdrop-filter: blur(2px);
             z-index: 5;
@@ -2090,7 +2197,7 @@ class SunPositionCard extends HTMLElement {
             display: none; 
             align-items: center;
             gap: 6px;
-            font-size: 1em; 
+            font-size: calc(1em * var(--spc-text-scale, 1));
             pointer-events: none;
             backdrop-filter: blur(2px);
             z-index: 5;
@@ -2119,21 +2226,65 @@ class SunPositionCard extends HTMLElement {
         .sun-image-container { text-align: center; padding: 16px; position: relative; display: flex; justify-content: center; } 
         .sun-image { max-width: 90%; height: auto; }
         .times-container { padding: 8px 8px 0 8px; margin-top: 20px;}
-        .time-entry { padding: 4px 0; text-align: center; }
-        .time-entry-block { display: flex; justify-content: space-between; padding: 4px 0; }
+        .time-entry { padding: 4px 0; text-align: center; font-size: calc(1em * var(--spc-text-scale, 1)); }
+        .time-entry-block { display: flex; justify-content: space-between; padding: 4px 0; font-size: calc(1em * var(--spc-text-scale, 1)); }
         .time-label { text-align: left; }
         .time-value { text-align: right; }
         .flex-container { display: flex; align-items: center; }
         .flex-container .sun-image-container { flex: 1; }
         .flex-container .times-container { flex: 1; }
-        .state { text-align: center; font-weight: bold; padding-bottom: 8px; }
-        .moon-phase-state { text-align: center; font-weight: normal; padding-bottom: 0px; }
-        .degrees { text-align: center; font-size: 0.9em; opacity: 0.8; padding-bottom: 0px; }
-        .degrees-in-list { font-size: 0.9em; opacity: 0.8; }
+        .state { text-align: center; font-weight: bold; padding-bottom: 8px; font-size: calc(1em * var(--spc-text-scale, 1)); }
+        .moon-phase-state { text-align: center; font-weight: normal; padding-bottom: 0px; font-size: calc(1em * var(--spc-text-scale, 1)); }
+        .degrees { text-align: center; font-size: calc(0.9em * var(--spc-text-scale, 1)); opacity: 0.8; padding-bottom: 0px; }
+        .degrees-in-list { font-size: calc(0.9em * var(--spc-text-scale, 1)); opacity: 0.8; }
         .divider { border: 0; border-top: 1px solid var(--divider-color, #e0e0e0); margin: 0; }
         
         .sun-image-container:not(.calculated) .sun-icon-wrapper {
             position: relative;
+        }
+
+        ha-card.fill-height .card-content {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        ha-card.fill-height .main-layout {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        ha-card.fill-height .main-layout.mode-right .flex-container {
+            flex: 1;
+            min-height: 0;
+            align-items: stretch;
+        }
+
+        ha-card.fill-height .main-layout.mode-right .sun-image-container {
+            flex: 1;
+            min-height: 0;
+            align-items: center;
+        }
+
+        ha-card.fill-height .main-layout.mode-right .times-container {
+            margin-top: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        ha-card.fill-height .main-layout.mode-below .sun-image-container.calculated,
+        ha-card.fill-height .main-layout.mode-above .sun-image-container.calculated,
+        ha-card.fill-height .main-layout.mode-right .sun-image-container.calculated {
+            min-height: clamp(250px, 52vh, 760px);
+        }
+
+        ha-card.fill-height .main-layout .calculated-sun {
+            width: clamp(170px, 30vh, 340px);
+            max-width: clamp(170px, 30vh, 340px);
         }
       </style>
     `;
@@ -2185,7 +2336,9 @@ class SunPositionCard extends HTMLElement {
       ${stateHtml}
       ${degreesHtml}
       ${moonPhaseHtml}
-      ${cardLayout}
+      <div class="main-layout mode-${timePosition}">
+        ${cardLayout}
+      </div>
     `;
   }
 
@@ -2227,6 +2380,7 @@ class SunPositionCard extends HTMLElement {
       noon_azimuth: 200,
       afternoon_azimuth: 255,
       sun_size: 50,
+      text_scale: 100,
       hide_moon_phase_on_day: false,
       show_moon_icon_in_text: false,
       show_night_arc: false,

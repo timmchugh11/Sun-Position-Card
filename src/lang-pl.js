@@ -72,6 +72,7 @@ export default {
         show_weather_badge: "Pokaż plakietkę pogodową",
         animate_images: "Animuj obrazy (z wyjątkiem rana/świtu)",
         sun_size: "Rozmiar słońca/księżyca (tylko łuk)",
+        text_scale: "Skala tekstu",
         state_position: "Pozycja stanu",
         state_pos_above: "Nad obrazem",
         state_pos_in_list: "Na liście",

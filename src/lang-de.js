@@ -72,6 +72,7 @@ export default {
         show_weather_badge: "Wetter-Badge im Bild anzeigen",
         animate_images: "Bilder animieren (außer Morgen/Dämmerung Bild)",
         sun_size: "Größe der Sonne/Mond (nur Bogen)",
+        text_scale: "Textskalierung",
         state_position: "Position des Status",
         state_pos_above: "Über dem Bild",
         state_pos_in_list: "In der Liste",

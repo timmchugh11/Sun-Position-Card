@@ -72,6 +72,7 @@ export default {
         show_weather_badge: "Show Weather Badge",
         animate_images: "Animate Images (except morning/twilight image)",
         sun_size: "Sun/Moon Size (Arc only)",
+        text_scale: "Text Scale",
         state_position: "State Position",
         state_pos_above: "Above Image",
         state_pos_in_list: "In List",
