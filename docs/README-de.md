@@ -149,6 +149,8 @@ Obwohl die UI-Konfiguration empfohlen wird, kann die Karte auch manuell über de
 | `show_degrees_in_list`| `boolean` | No         | Zeige Gradzahlen in der Timeliste.																		  | `true`, `false`                          |
 | `show_dividers` 		| `boolean` | No         | Zeige Trennlinien zwischen den Zeiten. 																	  | `true`, `false`                          |
 | `animate_images` 		| `boolean` | No         | Animiere die Sonnenstandsbilder.																			  | `true`, `false`                          |
+| `sun_size` 			| `number` | No         | Größe von Sonne/Mond im `arc`-Modus.																	      | `20` bis `120`                           |
+| `text_scale` 			| `number` | No         | Skalierung der Schriftgröße in Prozent.																	  | `70` bis `200` (`100` = Standard)        |
 | `view_mode`			| `string` | No         | Ansichtsoption klassich mit Bildern oder berechneter Sonnenstand. 										  | `classic`, `calculated`, `arc`			 |
 | `morning_azimuth`     | `number` | No         | Azimut-Grenzwert für den Morgen.                                                                            | `150`                                    |
 | `noon_azimuth`        | `number` | No         | Azimut-Grenzwert für den Mittag.                                                                            | `200`                                    |
@@ -195,6 +197,8 @@ afternoon_azimuth: 255
 animate_images: false
 time_list_format: block
 view_mode: arc
+sun_size: 56
+text_scale: 120
 ```
 
 ---
